@@ -4,7 +4,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(pwd)"
 PROJECT_NAME="$(basename "$PROJECT_DIR")"
 ACTION="${1:-apply}"
-BACKEND_FILE="${2:-backend-config.hcl}"
+BACKEND_FILE="${2:-backend.conf}"
 
 WSL_KEY_PATH="/tmp/remote-runner-private-key.pem"
 WIN_KEY_PATH="$HOME/.ssh/remote-runner-private-key.pem"
