@@ -1,6 +1,7 @@
 resource "aws_s3_bucket" "remote_execution_bucket" {
   bucket = "${var.project_name}-${random_id.suffix.hex}"
   force_destroy = true
+  
 }
 
 resource "aws_s3_bucket_versioning" "bucket_versioning" {
@@ -17,6 +18,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "bucket_encryption
       sse_algorithm = "AES256"
     }
   }
+
 }
 
 resource "aws_s3_bucket_public_access_block" "bucket_privacy" {
