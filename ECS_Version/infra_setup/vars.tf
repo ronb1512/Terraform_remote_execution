@@ -6,5 +6,5 @@ variable "vpc_name" {
 }
 variable "project_name" {
   type = string
-  default = "remote-execution"
+  default = "remotf"
 }

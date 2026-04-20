@@ -21,9 +21,9 @@ COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Adding user for least privalege execution
-RUN useradd -m infrascope
-USER infrascope
-WORKDIR /home/infrascope
+RUN useradd -m remotf
+USER remotf
+WORKDIR /home/remotf
 
 # Set the entrypoint to the script
 # This means that when the container starts, the first processes that the kernel will execute is the script.

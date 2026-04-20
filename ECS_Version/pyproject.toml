@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "remotf"
+version = "0.1.0"
+description = "Remote Terraform Execution CLI"
+dependencies = [
+    "typer[all]",
+    "boto3",
+    "rich"
+]
+
+[project.scripts]
+remotf = "remotf_cli.main:app"

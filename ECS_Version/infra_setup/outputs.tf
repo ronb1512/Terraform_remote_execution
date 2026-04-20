@@ -9,8 +9,13 @@ output "task_definition_arn" {
 output "subnet" {
   value = data.aws_subnets.default.ids[0]
 }
-
+output "codebuild_project_name" {
+  value = aws_codebuild_project.image_builder.name
+}
 output "ecr_repository" {
-  value = aws_ecr_repository.remote_execution_repository.name
+  value = aws_ecr_repository.remote_execution_repository.repository_url
+}
+output "s3_bucket" {
+  value = aws_s3_bucket.remote_execution_bucket.id
 }
 
