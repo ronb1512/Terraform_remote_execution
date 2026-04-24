@@ -3,3 +3,12 @@
 *.tfstate.backup
 .terraform/
 *.conf
+.venv/*
+__pycache__/
+*.zip
+.venv
+build/*
+build/
+venv/
+dist/
+*.egg-info/

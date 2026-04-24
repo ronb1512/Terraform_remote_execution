@@ -4,8 +4,14 @@ import os
 import shutil
 import json
 import boto3
+import hashlib
+from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich import print
 from typing import Optional
+import zipfile
+import glob
+import sys
+import textwrap
 
 app = typer.Typer()
 
@@ -38,17 +44,22 @@ def get_tf_outputs(cwd: str = "."):
 # then it should run the codebuild project to build the docker image and push it to ECR
 # steps related to the image_setup should be done once and only if the image does not exist
 @app.command()
-def init(region: Optional[str] = typer.Option(
+def setup(region: Optional[str] = typer.Option(
         None, "--region", "-r", help="AWS Region to deploy to"
     )):
     """
     Create the remote environment and migrate state.
-    """
+    """        
     print("[bold blue]Checking dependencies...[/bold blue]")
+    
     for tool in ["terraform", "aws"]:
         if not shutil.which(tool):
             print(f"[red]Error: {tool} is not installed or not in PATH.[/red]")
             raise typer.Exit(code=1)
+    
+    if not region:
+        session = boto3.Session()
+        region = session.region_name
 
     print("[bold blue]Stage 1: Creating Infrastructure...[/bold blue]")
     parent_dir = os.path.dirname(os.path.abspath(__file__))
@@ -96,8 +107,10 @@ def init(region: Optional[str] = typer.Option(
         images = ecr.list_images(repositoryName=repo_name, maxResults=1)
         image_exists = len(images.get('imageIds', [])) > 0
     except ecr.exceptions.RepositoryNotFoundException:
-        raise typer.Exit(code=1, message=f"[red]ECR repository {repo_name} not found. Please check your infrastructure setup.[/red]")
+        print(f"[red]ECR repository {repo_name} not found. Please check your infrastructure setup.[/red]")
+        raise typer.Exit(code=1)
 
+    zip_full_path = None
     if not image_exists:
         print("[yellow]No image found in ECR. Building and pushing...[/yellow]")
         try:
@@ -120,24 +133,184 @@ def init(region: Optional[str] = typer.Option(
 
     print("\n[bold green]✅ remotf is ready for use![/bold green]")
 
+@app.command()
+def cleanup():
+    """
+    Destroy the base infrastructure created for remotf.
+    """
+    parent_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.dirname(parent_dir)
+    infra_path = os.path.join(root_dir, "infra_setup")
+
+    validate_terraform_dir(infra_path)
+    
+    run_shell(["terraform", "destroy", "-auto-approve"], cwd=infra_path)
+
 # function 2: execute
 # this function should be called by any other function that need to execute terraform commands.
 # it should take the actual code of the project, zip it and upload it to the S3 bucket, if changes were made
 # after that it should run an ECS task from that image, with overriden environment variables (S3 bucket data and the terraform command) 
-@app.command()
-def execute(command: str):
-    """
-    Execute a terraform command in the remote environment.
-    """
+def get_dir_hash(directory):
+    """Creates a single hash of the entire directory to detect changes."""
+    hash_md5 = hashlib.md5()
+    for root, dirs, files in os.walk(directory):
+        # Exclude hidden folders like .terraform or .git
+        dirs[:] = [d for d in dirs if not d.startswith('.')]
+        for names in sorted(files):
+            if names.startswith('.'): continue
+            file_path = os.path.join(root, names)
+            with open(file_path, "rb") as f:
+                for chunk in iter(lambda: f.read(4096), b""):
+                    hash_md5.update(chunk)
+    return hash_md5.hexdigest()
+
+def create_clean_zip(source_dir, output_filename):
+    """Zips the directory while excluding hidden files and folders."""
+    with zipfile.ZipFile(output_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(source_dir):
+            dirs[:] = [d for d in dirs if not d.startswith('.')]           
+            for file in files:
+                if file.startswith('.'):
+                    continue             
+                file_path = os.path.join(root, file)
+                archive_name = os.path.relpath(file_path, source_dir)
+                
+                zipf.write(file_path, archive_name)
+    return output_filename
+
+def validate_terraform_dir(directory="."):
+    """Checks if the directory contains any Terraform configuration files."""
+    tf_files = glob.glob(os.path.join(directory, "*.tf"))
     
+    if not tf_files:
+        print("[bold red]Error:[/bold red] No Terraform files (.tf) found in the current directory.")
+        print("[dim]Please run this command from your Terraform project root.[/dim]")
+        raise typer.Exit(code=1)
+    
+    return True
+
+
+def execute(command: str, commit: str = "latest"):
+    """
+    The internal engine that runs the remote task.
+    """
+    validate_terraform_dir(".")
+    parent_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.dirname(parent_dir)
+    infra_path = os.path.join(root_dir, "infra_setup")
+    namespace = os.path.basename(os.getcwd())
+
+    outputs = get_tf_outputs(infra_path)
+    bucket_name = outputs["s3_bucket"]["value"]
+    cluster_name = outputs["ecs_cluster_name"]["value"]
+    task_definition = outputs["task_definition_arn"]["value"]
+    task_definition_family = outputs["task_definition_family"]["value"]
+    subnets = [outputs["subnet"]["value"]]
+    security_groups = [outputs["ecs_sg_id"]["value"]]
+    log_group_name = outputs["log_group_name"]["value"]
+    region = outputs["region"]["value"]
+
+
+
+    current_hash = get_dir_hash(".")
+    archive_name = "code_archive"
+    s3_code_archive_key = f"{namespace}/code-archives/{current_hash}.zip"
+
+    s3_env_archive_key = f"{namespace}/env-archives/{commit}.zip"
+
+    s3 = boto3.client("s3", region_name=region)
+    
+    # Check if this specific version of the code is already in S3
+    try:
+        s3.head_object(Bucket=bucket_name, Key=s3_code_archive_key)
+        print("[dim]No changes detected in code. Using existing remote payload.[/dim]")
+    except s3.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == "404":
+            print("[yellow]Changes detected. Zipping and uploading...[/yellow]")
+        else:
+            raise typer.Exit(code=1)
+        try:
+            zip_path = f"{archive_name}.zip"
+            create_clean_zip('.', zip_path)
+            s3.upload_file(zip_path, bucket_name, s3_code_archive_key)
+        except Exception as e:
+            print(f"[red]Error uploading to S3: {e}[/red]")
+            raise typer.Exit(code=1)
+        finally:
+            os.remove(zip_path)
+
+    print(f"[bold green]🚀 Launching remote 'terraform {command}'...[/bold green]")
+    ecs = boto3.client("ecs", region_name=region)
+    
+    response = ecs.run_task(
+        cluster=cluster_name,
+        taskDefinition=task_definition,
+        launchType='FARGATE',
+        networkConfiguration={
+            'awsvpcConfiguration': {
+                'subnets': subnets,
+                'securityGroups': security_groups,
+                'assignPublicIp': 'ENABLED'
+            }
+        },
+        overrides={
+            'containerOverrides': [{
+                'name': task_definition_family,
+                'environment': [
+                    {'name': 'TF_COMMAND', 'value': command},
+                    {'name': 'S3_BUCKET', 'value': bucket_name},
+                    {'name': 'S3_CODE_ARCHIVE_KEY', 'value': s3_code_archive_key},
+                    {'name': 'COMMIT', 'value': commit},
+                    {'name': 'S3_ENV_ARCHIVE_KEY', 'value': s3_env_archive_key}
+                ]
+            }]
+        }
+    )
+
+    task_arn = response['tasks'][0]['taskArn']
+    print(f"[dim]Task started: {task_arn.split('/')[-1]}[/dim]")
+    
+    waiter = ecs.get_waiter('tasks_running')
+    waiter.wait(cluster=cluster_name, tasks=[task_arn])
+    subprocess.run(["aws", "logs", "tail", log_group_name, "--follow"], check=True)
+
+
+COMMIT_OPTION = typer.Option("latest", "--commit", "-c", help="The environment commit to use.")
+
 # function 5: apply
 # calls the execute function with the apply command
+@app.command()
+def apply(command: str = "", commit: str = COMMIT_OPTION):
+    """
+    Apply the Terraform configuration remotely.
+    """
+    execute(f"apply {command} -auto-approve", commit)
 
 # function 3: destroy
 # calls the execute function with the destroy command
+@app.command()
+def destroy(command: str = "", commit: str = COMMIT_OPTION):
+    """
+    Destroy the Terraform resources remotely.
+    """
+    execute(f"destroy {command} -auto-approve", commit)
 
 # function 4: plan
 # calls the execute function with the plan command
+@app.command()
+def plan(command: str = "", commit: str = COMMIT_OPTION):
+    """
+    Plan the Terraform configuration remotely.
+    """
+    execute(f"plan {command}", commit)
+
+@app.command()
+def init(command: str = "", commit: str = COMMIT_OPTION):
+    """
+    Initialize the remote Terraform environment.
+    """
+    execute(f"init {command}", commit)
+
 
 
 if __name__ == "__main__":

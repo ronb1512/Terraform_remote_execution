@@ -14,3 +14,8 @@ dependencies = [
 
 [project.scripts]
 remotf = "remotf_cli.main:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["remotf_cli*"]
+exclude = ["infra_setup*", "image_setup*"]

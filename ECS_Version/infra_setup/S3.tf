@@ -29,6 +29,33 @@ resource "aws_s3_bucket_public_access_block" "bucket_privacy" {
   restrict_public_buckets = true
 }
 
+resource "aws_s3_bucket_lifecycle_configuration" "cleanup" {
+  bucket = aws_s3_bucket.remote_execution_bucket.id
+  rule {
+    id     = "cleanup-old-codes"
+    status = "Enabled"
+
+    filter {
+      prefix = "code-archives/"
+    }
+    expiration {
+      days = 1
+    }
+  }
+  rule {
+    id     = "cleanup-old-envs"
+    status = "Enabled"
+
+    filter {
+      prefix = "env-archives/"
+    }
+
+    expiration {
+      days = 1
+    }
+  }
+}
+
 resource "random_id" "suffix" {
   byte_length = 4
 }
