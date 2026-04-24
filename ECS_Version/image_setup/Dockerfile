@@ -10,7 +10,7 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
     rm -rf awscliv2.zip ./aws
 
 # Install Terraform
-ENV TF_VERSION=1.8.0
+ENV TF_VERSION=1.14.0
 RUN curl -LO "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip" && \
     unzip "terraform_${TF_VERSION}_linux_amd64.zip" && \
     mv terraform /usr/local/bin/ && \
@@ -21,7 +21,10 @@ COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Adding user for least privalege execution
-RUN useradd -m remotf
+RUN microdnf install -y shadow-utils && \
+    useradd -m remotf && \
+    microdnf clean all && \
+    microdnf install -y zip unzip
 USER remotf
 WORKDIR /home/remotf
 

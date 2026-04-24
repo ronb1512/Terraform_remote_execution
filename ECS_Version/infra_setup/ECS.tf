@@ -22,13 +22,13 @@ resource "aws_ecs_cluster" "remote_execution_cluster" {
   }
 }
 resource "aws_ecs_task_definition" "terraform_runner" {
-  family = "terraform-runner"
-  network_mode = "awsvpc"
+  family                   = "terraform-runner"
+  network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu = 512
-  memory = 1024
-  execution_role_arn = aws_iam_role.ecs_execution_role.arn
-  task_role_arn = aws_iam_role.ecs_task_role.arn
+  cpu                      = 512
+  memory                   = 1024
+  execution_role_arn       = aws_iam_role.ecs_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
   ephemeral_storage {
     size_in_gib = 21
   }
@@ -37,18 +37,18 @@ resource "aws_ecs_task_definition" "terraform_runner" {
     cpu_architecture        = "X86_64"
   }
   container_definitions = jsonencode([{
-      name = "terraform-runner"
-      image     = "${local.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.project_name}:latest"
-      essential = true
+    name      = "terraform-runner"
+    image     = "${local.account_id}.dkr.ecr.${var.region}.amazonaws.com/${var.project_name}:latest"
+    essential = true
 
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.remote_execution_logs.name
-          "awslogs-region"        = var.region
-          "awslogs-stream-prefix" = "remote-runner"
-        }
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.remote_execution_logs.name
+        "awslogs-region"        = var.region
+        "awslogs-stream-prefix" = "remote-runner"
       }
+    }
   }])
 }
 

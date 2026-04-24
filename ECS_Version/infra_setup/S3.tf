@@ -1,7 +1,7 @@
 resource "aws_s3_bucket" "remote_execution_bucket" {
-  bucket = "${var.project_name}-${random_id.suffix.hex}"
+  bucket        = "${var.project_name}-${random_id.suffix.hex}"
   force_destroy = true
-  
+
 }
 
 resource "aws_s3_bucket_versioning" "bucket_versioning" {
@@ -39,7 +39,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "cleanup" {
       prefix = "code-archives/"
     }
     expiration {
-      days = 1
+      days = 3
     }
   }
   rule {

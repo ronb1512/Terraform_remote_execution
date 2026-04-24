@@ -38,7 +38,7 @@ resource "aws_iam_role" "ecs_task_role" {
   })
 }
 resource "aws_iam_role_policy_attachment" "ecs_task" {
-  role = aws_iam_role.ecs_task_role.name
+  role       = aws_iam_role.ecs_task_role.name
   policy_arn = data.aws_iam_policy.admin_access.arn
 }
 
@@ -55,10 +55,10 @@ resource "aws_iam_role" "codebuild_role" {
   })
 }
 resource "aws_iam_role_policy" "codebuild_policy" {
-    name = "${var.project_name}-codebuild-policy"
-    role = aws_iam_role.codebuild_role.id
+  name = "${var.project_name}-codebuild-policy"
+  role = aws_iam_role.codebuild_role.id
 
-    policy = jsonencode({
+  policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
@@ -95,7 +95,8 @@ resource "aws_iam_role_policy" "codebuild_policy" {
         Action = [
           "s3:GetObject",
           "s3:GetObjectVersion",
-          "s3:GetBucketVersioning"
+          "s3:GetBucketVersioning",
+          "s3:ListBucket"
         ]
         Resource = [
           aws_s3_bucket.remote_execution_bucket.arn,

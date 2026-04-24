@@ -1,10 +1,7 @@
 variable "region" {
-  type    = string
-}
-variable "vpc_name" {
-  type    = string
+  type = string
 }
 variable "project_name" {
-  type = string
+  type    = string
   default = "remotf"
 }
