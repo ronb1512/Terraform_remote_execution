@@ -3,7 +3,7 @@ import subprocess
 import os
 import typer
 from rich import print
-# from remotf_cli.commands.execute import RemotfContext
+
 
 def run_ecs_task(context: RemotfContext):
     ecs = boto3.client("ecs", region_name=context.region)

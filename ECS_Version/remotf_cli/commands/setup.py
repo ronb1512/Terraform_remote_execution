@@ -28,7 +28,8 @@ def active():
         print("[yellow]remotf is not set up yet. Run 'remotf setup' to get started.[/yellow]")
 
 
-def setup(region: Optional[str] = typer.Option(None, "--region", "-r")):
+def setup(region: Optional[str] = typer.Option(None, "--region", "-r", help="AWS region to deploy remotf infrastructure. Defaults to current AWS CLI region or us-east-1 if not set."),
+policy_arn: Optional[str] = typer.Option(None, "--policy-arn", "-p", help="IAM policy ARN to attach to the ECS task role. Defaults to AdministratorAccess.")):
     """Create the remote environment and migrate state."""
     print("[bold blue]Checking dependencies...[/bold blue]")
     for tool in ["terraform", "aws"]:
@@ -38,6 +39,12 @@ def setup(region: Optional[str] = typer.Option(None, "--region", "-r")):
 
     if not region:
         region = boto3.Session().region_name
+    
+    if not policy_arn:
+        policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+        print(f"[yellow]No policy ARN provided. Defaulting to AdministratorAccess.[/yellow]")
+        print(f"[dim]Use --policy-arn to scope down permissions to what your terraform actually needs.[/dim]")
+
 
     print(f"[bold blue]Stage 1: Creating Infrastructure in {region}...[/bold blue]")
     parent_dir = os.path.dirname(os.path.abspath(__file__))
@@ -48,7 +55,7 @@ def setup(region: Optional[str] = typer.Option(None, "--region", "-r")):
 
     if not os.path.exists(os.path.join(infra_path, "backend.tf")):
         run_shell(["terraform", "init", "-backend=false"], cwd=infra_path)
-    run_shell(["terraform", "apply", "-auto-approve", f"-var=region={region}"], cwd=infra_path, visible=True)
+    run_shell(["terraform", "apply", "-auto-approve", f"-var=region={region}", f"-var=runner_policy_arn={policy_arn}"], cwd=infra_path, visible=True)
 
     outputs = get_tf_outputs(infra_path)
     bucket_name = outputs["s3_bucket"]["value"]
@@ -120,8 +127,6 @@ def cleanup():
     infra_path = os.path.join(root_dir, "infra_setup")
 
     validate_terraform_dir(infra_path)
-
-    # get region before we destroy anything
     try:
         outputs = get_tf_outputs(infra_path)
         region = outputs["region"]["value"]

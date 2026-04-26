@@ -11,9 +11,9 @@ resource "aws_iam_role" "terraform_runner_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "admin_attach" {
+resource "aws_iam_role_policy_attachment" "policy_attach" {
   role       = aws_iam_role.terraform_runner_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+  policy_arn = var.runner_policy
 }
 
 resource "aws_iam_instance_profile" "terraform_runner_profile" {

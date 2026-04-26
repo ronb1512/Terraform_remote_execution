@@ -39,7 +39,7 @@ resource "aws_iam_role" "ecs_task_role" {
 }
 resource "aws_iam_role_policy_attachment" "ecs_task" {
   role       = aws_iam_role.ecs_task_role.name
-  policy_arn = data.aws_iam_policy.admin_access.arn
+  policy_arn = var.runner_policy_arn
 }
 
 
