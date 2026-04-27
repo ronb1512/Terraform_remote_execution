@@ -5,7 +5,7 @@ The v1 implementation of remotf. A persistent EC2 instance acts as a remote Terr
 ---
 
 <div align="center">
-  <img src="../assets/EC2_version_diagram.png" width="50%" alt="v1-diagram">
+  <img src="../assets/EC2_version_diagram.png" width="85%" alt="v1-diagram">
 </div>
 
 ---
