@@ -12,3 +12,6 @@ build/
 venv/
 dist/
 *.egg-info/
+.remotf
+*.pem
+**/.terraform/
