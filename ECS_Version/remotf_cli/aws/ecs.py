@@ -23,7 +23,7 @@ def run_ecs_task(context: RemotfContext):
             'containerOverrides': [{
                 'name': context.task_definition_family,
                 'environment': [
-                    {'name': 'TF_COMMAND',          'value': command},
+                    {'name': 'TF_COMMAND',          'value': context.command},
                     {'name': 'S3_BUCKET',           'value': context.bucket_name},
                     {'name': 'S3_CODE_ARCHIVE_KEY', 'value': context.s3_code_archive_key},
                     {'name': 'S3_ENV_ARCHIVE_KEY',  'value': context.s3_env_archive_key},

@@ -51,7 +51,6 @@ policy_arn: Optional[str] = typer.Option(None, "--policy-arn", "-p", help="IAM p
     cli_dir = os.path.dirname(parent_dir)
     root_dir = os.path.dirname(cli_dir)
     infra_path = os.path.join(root_dir, "infra_setup")
-    root_dir = os.path.dirname(parent_dir)
 
     if not os.path.exists(os.path.join(infra_path, "backend.tf")):
         run_shell(["terraform", "init", "-backend=false"], cwd=infra_path)

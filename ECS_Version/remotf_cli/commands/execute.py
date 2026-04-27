@@ -14,6 +14,7 @@ from remotf_cli.aws.ecs import run_ecs_task
 
 @dataclass
 class RemotfContext:
+    command: str
     bucket_name: str
     cluster_name: str
     task_definition: str
@@ -58,7 +59,8 @@ def execute(command: str, remote: bool = True):
 
     # ── remote setup ──────────────────────────────────────────
     parent_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir = os.path.dirname(parent_dir)
+    cli_dir = os.path.dirname(parent_dir)
+    root_dir = os.path.dirname(cli_dir)
     infra_path = os.path.join(root_dir, "infra_setup")
 
     outputs = get_tf_outputs(infra_path)
@@ -128,6 +130,7 @@ def execute(command: str, remote: bool = True):
     # ── launch ECS task ───────────────────────────────────────
     print(f"[bold green]Launching remote 'terraform {command}'...[/bold green]")
     context = RemotfContext(
+        command=command,
         bucket_name=bucket_name,
         cluster_name=cluster_name,
         task_definition=task_definition,

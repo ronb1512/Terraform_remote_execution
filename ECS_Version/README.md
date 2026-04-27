@@ -141,7 +141,7 @@ Restart your shell, terminal, or editor after running `ensurepath` so the PATH c
 Then install remotf directly from GitHub:
 
 ```bash
-pipx install GITHUB_REPO_URL
+pipx install "git+https://github.com/username/repo.git#subdirectory=ECS_Version"
 ```
 
 Validate the installation:
