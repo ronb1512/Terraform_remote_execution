@@ -36,10 +36,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "cleanup" {
     status = "Enabled"
 
     filter {
-      prefix = "code-archives/"
+      prefix = "code/"
     }
     expiration {
-      days = 3
+      days = 1
     }
   }
   rule {
@@ -47,11 +47,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "cleanup" {
     status = "Enabled"
 
     filter {
-      prefix = "env-archives/"
+      prefix = "env/"
     }
 
     expiration {
-      days = 1
+      days = 7
     }
   }
 }
