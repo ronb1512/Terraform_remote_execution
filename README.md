@@ -49,7 +49,7 @@ This version moves toward a "Serverless" execution model. It packages the code i
 ## Architectural Comparison
 ## Deep-dive comparison
 
-The surface-level tradeoffs between the two implementations are straightforward — cold start, cost, complexity. But the architectural differences run deeper than that. This table covers the full picture.
+The surface-level tradeoffs between the two implementations are straightforward - cold start, cost, complexity. But the architectural differences run deeper than that. This table covers the full picture.
 
 ## Architectural comparison
 
@@ -58,9 +58,9 @@ The surface-level tradeoffs between the two implementations are straightforward 
 | **Primary driver** | Performance and familiarity | Isolation and scalability |
 | **Concurrency** | 🔴 Single-tenant. Shared instance causes file conflicts and state corruption between sessions | 🟢 Multi-tenant. Each developer gets an isolated container. Dozens of applies run in parallel without interference |
 | **Compute cost** | 🔴 Fixed. Pay for uptime whether executing or idle. Stops only when you remember to stop it | 🟢 Pay-per-execution. Billing stops the second the container exits. Zero idle cost by design |
-| **Operational cost** | 🔴 High. OS patching, SSH key rotation, disk monitoring — all your responsibility | 🟢 Low. Serverless abstraction removes infrastructure maintenance entirely |
+| **Operational cost** | 🔴 High. OS patching, SSH key rotation, disk monitoring - all your responsibility | 🟢 Low. Serverless abstraction removes infrastructure maintenance entirely |
 | **Network security** | 🔴 Port 22 open to your machine or VPN. Every SSH session is an inbound connection to a live server | 🟢 No inbound ports. Communicates entirely through S3 and AWS APIs. Container never accepts incoming connections |
-| **Identity security** | 🔴 Instance profile persists permanently. SSH access = IAM role access for as long as the instance runs | 🟢 Task roles exist only for the container lifetime — minutes. No persistent identity to exploit |
+| **Identity security** | 🔴 Instance profile persists permanently. SSH access = IAM role access for as long as the instance runs | 🟢 Task roles exist only for the container lifetime - minutes. No persistent identity to exploit |
 | **Startup latency** | 🟢 Near-zero when instance is running | 🔴 45–90 seconds for image pull and provisioning |
 | **Compliance** | 🔴 Manual SSH session logging. Audit trail depends on what you set up | 🟢 Native. Every execution is a discrete CloudWatch event, structured and timestamped automatically |
 
